@@ -1,0 +1,998 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<title>Escape the Haunted House</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Creepster&family=Nunito:wght@400;600;800&display=swap" rel="stylesheet">
+<script>
+/* =========================================================
+   НАСТРОЙКИ: ЗДЕСЬ МЕНЯЕТЕ ТОЛЬКО ДВЕ ССЫЛКИ
+   CHANNEL_URL: ссылка на ваш Telegram-канал
+   APP_URL:     ссылка на это приложение (её даст BotFather)
+   ========================================================= */
+const CONFIG = {
+  CHANNEL_URL: 'https://t.me/your_channel_name',
+  APP_URL: 'https://t.me/YourBotName/halloween'
+};
+</script>
+<style>
+:root{
+  --night:#0b0620; --ink:#2a160c; --paper:#f0e3c6; --paper2:#d8c294;
+  --orange:#ff8a1f; --flame:#ffcf4d; --goo:#8cff5a; --bone:#f3efe2;
+  --blood:#7a1a10; --ok:#2b8a3e; --bad:#c92a2a;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:#0b0620;color:#f4ecff;font-family:'Nunito',system-ui,sans-serif;overflow:hidden;user-select:none;-webkit-user-select:none}
+#scene{position:fixed;inset:0;width:100%;height:100%;display:block;overflow:visible}
+
+/* ---------- HUD ---------- */
+.hud{position:fixed;top:10px;left:12px;right:12px;display:flex;justify-content:space-between;align-items:center;pointer-events:none;z-index:5}
+.hud h1{margin:0;font-family:'Creepster',cursive;font-weight:400;font-size:24px;letter-spacing:1px;color:var(--orange);text-shadow:0 0 10px rgba(255,138,31,.7),0 2px 0 #000}
+.keys{display:flex;gap:3px;font-size:16px}
+.hud-r{display:flex;align-items:center;gap:8px}
+.lvl{pointer-events:auto;cursor:pointer;font:800 13px 'Nunito';color:#2a1206;background:linear-gradient(180deg,#ffb04d,#ff7a1a);border:0;border-radius:999px;padding:5px 10px;box-shadow:0 0 10px rgba(255,138,31,.5)}
+.pick{font-weight:800;color:#ffd8a8;margin:14px 0 2px}
+.lv{display:flex;align-items:center;gap:12px;width:100%;margin-top:10px;padding:12px 14px;border-radius:16px;cursor:pointer;text-align:left;color:#f4ecff;background:linear-gradient(180deg,rgba(91,61,143,.55),rgba(43,22,80,.75));border:2px solid rgba(255,138,31,.45);box-shadow:0 4px 0 rgba(0,0,0,.35);transition:transform .1s}
+.lv:active{transform:translateY(2px)}
+.lv-l{font-family:'Creepster',cursive;font-size:34px;line-height:1;color:var(--orange);text-shadow:0 0 10px rgba(255,138,31,.6);min-width:52px;text-align:center}
+.lv-t{flex:1;display:flex;flex-direction:column;font-family:'Nunito'}
+.lv-t b{font-size:16px}
+.lv-t small{font-size:13px;color:#c9bde6;margin-top:2px}
+.lv-go{font-size:20px;color:#ffcf4d}
+.lv.going{border-color:#ffcf4d}
+.lv.won{border-color:var(--goo)}
+.lv.won small{color:var(--goo)}
+.keys span{filter:grayscale(1) brightness(.5);transition:.4s}
+.keys span.on{filter:none;text-shadow:0 0 8px #ffcf4d}
+.bar{position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom));z-index:5;background:rgba(14,7,32,.86);border:1px solid rgba(255,138,31,.45);border-radius:16px;padding:10px 12px;display:flex;gap:10px;align-items:center;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);box-shadow:0 0 24px rgba(255,138,31,.15)}
+.bar-txt{flex:1;min-width:0;line-height:1.25}
+.bar-txt b{display:block;font-size:15px;color:#ffd8a8}
+.bar-txt span{font-size:13px;color:#c9bde6}
+
+/* ---------- buttons ---------- */
+.btn{font:800 16px 'Nunito',sans-serif;border:0;border-radius:14px;padding:12px 18px;cursor:pointer;color:#2a1206;background:linear-gradient(180deg,#ffb04d,#ff7a1a);box-shadow:0 4px 0 #9c3f06,0 0 18px rgba(255,138,31,.45);transition:transform .1s}
+.btn:active{transform:translateY(2px);box-shadow:0 2px 0 #9c3f06}
+.btn:disabled{opacity:.45;filter:grayscale(.6)}
+.btn.sm{padding:10px 14px;font-size:15px;white-space:nowrap}
+.btn.big{width:100%;font-size:18px;padding:15px}
+.btn.ghost{background:linear-gradient(180deg,#5b3d8f,#3b2466);color:#fff;box-shadow:0 4px 0 #1e1036}
+.link{background:none;border:0;color:#b9a8e0;font:600 14px 'Nunito';text-decoration:underline;margin-top:10px;cursor:pointer}
+
+/* ---------- screens ---------- */
+.screen{position:fixed;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;padding:16px;background:radial-gradient(ellipse at 50% 30%,rgba(40,16,70,.75),rgba(5,2,14,.92));overflow:auto}
+.hidden{display:none!important}
+.panel{margin:auto;width:100%;max-width:420px;text-align:center;padding:24px 20px;border-radius:22px;background:rgba(20,10,40,.85);border:1px solid rgba(255,138,31,.35);box-shadow:0 0 40px rgba(140,255,90,.08),0 0 60px rgba(255,138,31,.15);position:relative}
+.eyebrow{font-size:12px;letter-spacing:2px;text-transform:uppercase;color:var(--goo)}
+.title{font-family:'Creepster',cursive;font-weight:400;font-size:46px;line-height:1;margin:10px 0 14px;color:var(--orange);text-shadow:0 0 14px rgba(255,138,31,.8),0 3px 0 #3b0d00}
+.panel p{font-size:16px;line-height:1.45;margin:0 0 12px;color:#ece4ff}
+.ru{font-size:13px!important;color:#a99cc8!important;font-style:italic}
+.panel .btn{margin-top:8px}
+.panel .btn+.btn{margin-top:12px}
+.badge{display:inline-block;margin:6px 0 14px;padding:8px 14px;border-radius:999px;background:linear-gradient(90deg,#3b2466,#5b3d8f);font-weight:800;color:#ffe08a}
+.cta{background:rgba(140,255,90,.08);border:1px dashed rgba(140,255,90,.5);border-radius:14px;padding:12px;font-size:15px;line-height:1.45;margin-bottom:10px}
+.confetti{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:3}
+.confetti span{position:absolute;top:-40px;font-size:26px;animation:fall linear forwards}
+@keyframes fall{to{transform:translateY(110vh) rotate(540deg)}}
+
+/* ---------- task modal ---------- */
+.modal{position:fixed;inset:0;z-index:30;display:flex;align-items:center;justify-content:center;padding:12px;background:rgba(5,2,15,.72);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)}
+.card{width:100%;max-width:460px;max-height:calc(100% - 8px);overflow:auto;color:var(--ink);border-radius:20px;padding:16px 16px 20px;background:radial-gradient(ellipse at 30% 0%,#fbf1d8,transparent 60%),linear-gradient(180deg,var(--paper),var(--paper2));border:3px solid #4a2a12;box-shadow:0 0 0 2px #c9a35d inset,0 0 40px rgba(255,138,31,.35);animation:pop .35s ease-out}
+@keyframes pop{from{transform:scale(.9);opacity:0}}
+.card.shake{animation:shake .4s}
+@keyframes shake{20%{transform:translateX(-8px)}40%{transform:translateX(8px)}60%{transform:translateX(-5px)}80%{transform:translateX(4px)}}
+.ctop{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.tag{font-size:12px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:#7a4b1d}
+.ctop-r{display:flex;align-items:center;gap:6px;flex:none}
+.vt{border:0;cursor:pointer;font:800 12px 'Nunito';padding:6px 10px;border-radius:999px;color:#fff;background:linear-gradient(180deg,#5b3d8f,#3b2466);white-space:nowrap}
+.vt.off{background:rgba(74,42,18,.15);color:#6b4a2a}
+.say{float:right;margin:-2px 0 4px 8px;border:2px solid #b08a4e;background:#fffaf0;border-radius:50%;width:34px;height:34px;font-size:16px;line-height:1;cursor:pointer;padding:0}
+.say.wide{float:none;display:block;width:auto;height:auto;border-radius:999px;padding:6px 12px;margin:6px 0 8px;font:800 14px 'Nunito';color:var(--ink)}
+.say.playing{background:#ffe8cc;border-color:var(--orange);animation:sayp .8s ease-in-out infinite alternate}
+@keyframes sayp{from{box-shadow:0 0 0 0 rgba(255,138,31,.6)}to{box-shadow:0 0 0 6px rgba(255,138,31,0)}}
+.answer .say{float:none;margin:0 0 0 auto}
+.x{border:0;background:rgba(74,42,18,.12);color:#4a2a12;width:32px;height:32px;border-radius:50%;font-size:16px;cursor:pointer;flex:none}
+.card h2{font-family:'Creepster',cursive;font-weight:400;font-size:34px;margin:4px 0 8px;color:var(--blood);letter-spacing:1px}
+.dots{display:flex;gap:6px;margin:0 0 12px}
+.dots i{flex:1;height:6px;border-radius:3px;background:rgba(74,42,18,.18)}
+.dots i.d{background:var(--ok)}
+.dots i.c{background:var(--orange)}
+.story{font-size:16px;line-height:1.5;background:rgba(74,42,18,.08);border-left:4px solid var(--blood);padding:10px 12px;border-radius:0 10px 10px 0;margin-bottom:12px}
+.task-name{font-weight:800;font-size:18px;margin-bottom:4px}
+.instr{font-size:15px;font-weight:600;margin:0 0 8px;color:#5a3517}
+.card .ru{color:#7d6a52!important;margin:0 0 12px}
+.q{font-size:18px;line-height:1.45;font-weight:600;margin:6px 0 14px}
+.gap{display:inline-block;min-width:60px;border-bottom:2px dashed var(--blood);color:var(--blood);text-align:center}
+.opts{display:grid;gap:10px}
+.opts.two{grid-template-columns:1fr 1fr}
+.opt{font:700 16px 'Nunito';text-align:left;padding:12px 14px;border-radius:12px;border:2px solid #b08a4e;background:#fffaf0;color:var(--ink);cursor:pointer;transition:.15s}
+.opts.two .opt{text-align:center}
+.opt:active{transform:scale(.98)}
+.opt.ok{background:#d3f9d8;border-color:var(--ok);color:#1b4d26}
+.opt.no{background:#ffe3e3;border-color:var(--bad);color:#8a1c1c;text-decoration:line-through;opacity:.8}
+.passage{font-size:15px;line-height:1.5;background:#fffaf0;border:2px solid #b08a4e;border-radius:12px;padding:10px 12px;margin-bottom:12px;max-height:34vh;overflow:auto}
+.passage b{display:block;margin-bottom:4px;color:var(--blood)}
+.answer{min-height:56px;border:2px dashed #b08a4e;border-radius:12px;padding:8px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;background:rgba(255,250,240,.6);margin-bottom:12px}
+.answer.ok{border-color:var(--ok);background:#ebfbee}
+.ph{color:#9c8463;font-size:14px}
+.pool{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.chip{font:700 16px 'Nunito';padding:8px 12px;border-radius:10px;border:2px solid #6b3f17;background:#fffaf0;color:var(--ink);cursor:pointer;box-shadow:0 2px 0 #6b3f17}
+.chip.in{background:#ffe8cc;border-color:var(--orange)}
+.riddle{font-size:18px;line-height:1.45;font-weight:600;margin:6px 0 10px;padding:12px;background:#fffaf0;border-radius:12px;border:2px solid #b08a4e}
+.hintline{font:800 20px monospace;letter-spacing:2px;color:var(--blood);min-height:4px;margin-bottom:8px}
+.inp{width:100%;font:700 18px 'Nunito';padding:12px 14px;border-radius:12px;border:2px solid #6b3f17;background:#fff;color:var(--ink);outline:none;user-select:text;-webkit-user-select:text;margin-bottom:10px}
+.inp.ok{border-color:var(--ok);background:#ebfbee}
+.inp.err{border-color:var(--bad);background:#fff0f0}
+.row{display:flex;gap:10px}
+.row .btn{flex:1}
+#next .btn{width:100%}
+#next .row .btn{width:auto}
+.fb{min-height:8px;margin:4px 0 10px}
+.good{font-weight:800;color:var(--ok);font-size:17px}
+.bad{font-weight:800;color:var(--bad);font-size:16px}
+.tip{margin-top:6px;font-size:14px;line-height:1.45;background:rgba(43,138,62,.1);padding:8px 10px;border-radius:10px}
+.unlock{text-align:center;padding:10px 0 6px}
+.bigkey{font-size:64px;animation:turn 1.2s ease-out}
+@keyframes turn{0%{transform:rotate(-90deg) scale(.4);opacity:0}60%{transform:rotate(20deg) scale(1.2);opacity:1}100%{transform:none}}
+.unlock p{font-size:17px;line-height:1.5}
+
+/* ---------- SVG scene animations ---------- */
+.tw{animation:twinkle 3s ease-in-out infinite}
+@keyframes twinkle{0%,100%{opacity:.9}50%{opacity:.2}}
+.win{animation:winflick 5s infinite}
+.f2{animation-duration:6.3s}.f3{animation-duration:3.7s}.f4{animation-duration:7.1s}
+@keyframes winflick{0%,100%{opacity:1}44%{opacity:.85}47%{opacity:.55}49%{opacity:.95}72%{opacity:.78}}
+.lamp{animation:pflick 2.2s infinite}
+
+/* jack-o-lanterns */
+.pglow{animation:breathe 4s ease-in-out infinite alternate}
+@keyframes breathe{from{opacity:.75}to{opacity:1}}
+.candle{transform-box:fill-box;transform-origin:50% 100%;animation:candle 1.6s ease-in-out infinite alternate}
+@keyframes candle{0%{transform:scale(1,.93) skewX(-5deg)}50%{transform:scale(.95,1.05) skewX(3deg)}100%{transform:scale(1.03,.98) skewX(-2deg)}}
+@keyframes pflick{0%,100%{opacity:1}7%{opacity:.5}9%{opacity:.95}21%{opacity:.7}38%{opacity:1}50%{opacity:.25}53%{opacity:.9}68%{opacity:.7}84%{opacity:1}}
+
+/* witch: flies across every 30 seconds */
+#witch{opacity:0;animation:witchFly 30s linear 2s infinite}
+@keyframes witchFly{
+  0%{transform:translate(-140px,250px);opacity:1}
+  22%{transform:translate(560px,40px);opacity:1}
+  22.1%,100%{transform:translate(560px,40px);opacity:0}
+}
+.bob{animation:bob 1.3s ease-in-out infinite alternate}
+@keyframes bob{from{transform:translateY(-5px) rotate(-3deg)}to{transform:translateY(5px) rotate(3deg)}}
+.cape{transform-box:fill-box;transform-origin:100% 50%;animation:cape .35s ease-in-out infinite alternate}
+@keyframes cape{from{transform:scaleY(.7) skewY(6deg)}to{transform:scaleY(1.1) skewY(-6deg)}}
+
+/* bats */
+.wing{transform-box:fill-box;transform-origin:center;animation:flap .22s ease-in-out infinite alternate}
+@keyframes flap{from{transform:scaleY(1)}to{transform:scaleY(-.5)}}
+
+/* cauldron */
+.flame{transform-box:fill-box;transform-origin:50% 100%;animation:flame .35s ease-in-out infinite alternate}
+.f-b{animation-duration:.27s}
+@keyframes flame{from{transform:scaleY(.8) skewX(-6deg)}to{transform:scaleY(1.15) skewX(6deg)}}
+.bub{transform-box:fill-box;transform-origin:center;animation:rise 2.4s ease-in infinite;opacity:0}
+@keyframes rise{0%{transform:translateY(0) scale(.3);opacity:0}15%{opacity:1;transform:translateY(-2px) scale(1)}75%{opacity:1}100%{transform:translateY(-26px) scale(1.4);opacity:0}}
+.blob{transform-box:fill-box;transform-origin:50% 100%;animation:blob 1.8s ease-in-out infinite}
+@keyframes blob{0%,100%{transform:scale(0)}50%{transform:scale(1)}55%{transform:scale(1.3);opacity:.4}60%{transform:scale(0)}}
+.drip{transform-box:fill-box;transform-origin:50% 0;animation:drip 3s ease-in infinite}
+.d2{animation-delay:1.3s}
+@keyframes drip{0%{transform:scaleY(.3)}80%{transform:scaleY(1.4)}100%{transform:scaleY(.3)}}
+.googlow{animation:pflick 4s infinite}
+.steam{animation:steam 4s ease-out infinite;opacity:0}
+@keyframes steam{0%{transform:translateY(0);opacity:0}30%{opacity:.35}100%{transform:translateY(-50px) translateX(8px);opacity:0}}
+
+/* ghost, spider, fog */
+#ghost{animation:ghost 16s ease-in-out infinite;opacity:0}
+@keyframes ghost{
+  0%{transform:translate(300px,260px);opacity:0}
+  10%{opacity:.9}
+  40%{transform:translate(345px,200px)}
+  70%{transform:translate(230px,215px);opacity:.9}
+  82%,100%{transform:translate(200px,250px);opacity:0}
+}
+.ghostbob{animation:bob 1.8s ease-in-out infinite alternate}
+#spider{animation:spider 15s ease-in-out infinite}
+@keyframes spider{0%,100%{transform:translate(60px,20px)}30%{transform:translate(60px,190px)}40%{transform:translate(60px,170px)}55%{transform:translate(60px,200px)}75%{transform:translate(60px,60px)}}
+.fog1{animation:drift 26s ease-in-out infinite alternate}
+.fog2{animation:drift 34s ease-in-out infinite alternate-reverse}
+@keyframes drift{from{transform:translateX(-70px)}to{transform:translateX(70px)}}
+
+/* skeleton */
+#skel{stroke:var(--bone);stroke-width:2;stroke-linecap:round;fill:none}
+#skelBody{transform-box:fill-box;transform-origin:50% 100%}
+.sp{transform-box:fill-box;transform-origin:center}
+.swing{transform-box:fill-box;transform-origin:50% 0}
+.running .sa{animation:swing .22s ease-in-out infinite alternate}
+.running .sb{animation:swing .22s ease-in-out infinite alternate-reverse}
+@keyframes swing{from{transform:rotate(-35deg)}to{transform:rotate(35deg)}}
+
+/* hotspots */
+.hs{cursor:pointer}
+.hs .hit{fill:transparent;pointer-events:all}
+.hs .ring{fill:none;stroke:#ffcf4d;stroke-width:3;opacity:0;transform-box:fill-box;transform-origin:center}
+.hs.current .ring{animation:pulse 1.4s ease-out infinite}
+@keyframes pulse{0%{transform:scale(.8);opacity:.95}100%{transform:scale(2);opacity:0}}
+.hs .dot{stroke-width:2.5}
+.hs.locked .dot{fill:#2e2644;stroke:#6b5f88}
+.hs.current .dot{fill:#ff8a1f;stroke:#ffe08a}
+.hs.done .dot{fill:#2f9e44;stroke:#b2f2bb}
+.hs .lbl{font:800 13px 'Nunito',sans-serif;fill:#fff;pointer-events:none}
+.hs.locked .lbl{fill:#8f84ad}
+.trail{stroke:#8f84ad;stroke-width:2;stroke-dasharray:3 5;fill:none;opacity:.45}
+.trail.done{stroke:#ffcf4d;opacity:.9}
+@media (prefers-reduced-motion:reduce){.bub,.blob,.drip,.steam,.fog1,.fog2{animation:none}}
+</style>
+</head>
+<body>
+
+<svg id="scene" viewBox="20 30 360 770" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+<defs>
+  <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="#04020c"/><stop offset=".5" stop-color="#140b33"/><stop offset=".85" stop-color="#2a2a5e"/><stop offset="1" stop-color="#3d4c7a"/>
+  </linearGradient>
+  <radialGradient id="moonGlow"><stop offset="0" stop-color="#fff6c9" stop-opacity=".55"/><stop offset=".5" stop-color="#cfd9ff" stop-opacity=".14"/><stop offset="1" stop-color="#cfd9ff" stop-opacity="0"/></radialGradient>
+  <radialGradient id="pglow"><stop offset="0" stop-color="#ffb347" stop-opacity=".85"/><stop offset="1" stop-color="#ff7a00" stop-opacity="0"/></radialGradient>
+  <radialGradient id="winGlow" cx=".5" cy=".65" r=".75"><stop offset="0" stop-color="#ffefb0"/><stop offset=".55" stop-color="#ffb13b"/><stop offset="1" stop-color="#c9560c"/></radialGradient>
+  <radialGradient id="gooGlow"><stop offset="0" stop-color="#9dff6a" stop-opacity=".65"/><stop offset="1" stop-color="#9dff6a" stop-opacity="0"/></radialGradient>
+  <radialGradient id="lampGlow"><stop offset="0" stop-color="#ffcf6b" stop-opacity=".5"/><stop offset="1" stop-color="#ffcf6b" stop-opacity="0"/></radialGradient>
+  <linearGradient id="dirt" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#241a2e"/><stop offset=".12" stop-color="#1a1222"/><stop offset="1" stop-color="#0a060e"/></linearGradient>
+  <radialGradient id="candleIn" gradientUnits="userSpaceOnUse" cx="0" cy="-7" r="15"><stop offset="0" stop-color="#fffbe6"/><stop offset=".4" stop-color="#ffe066"/><stop offset=".8" stop-color="#ffb22e"/><stop offset="1" stop-color="#f08a12"/></radialGradient>
+  <clipPath id="faceHoles"><path d="M-10 -13 L-3 -13 L-6.5 -19.5 Z M3 -13 L10 -13 L6.5 -19.5 Z M-1.8 -9.5 L1.8 -9.5 L0 -12.8 Z M-11 -7.5 Q0 5 11 -7.5 Q6 -5 4 -5.2 L2.8 -3.4 L1.4 -5 L-1.4 -5 L-2.8 -3.4 L-4 -5.2 Q-6 -5 -11 -7.5 Z"/></clipPath>
+  <filter id="blur6" x="-50%" y="-200%" width="200%" height="500%"><feGaussianBlur stdDeviation="6"/></filter>
+</defs>
+
+<!-- sky -->
+<rect x="-600" y="-600" width="1600" height="1170" fill="url(#sky)"/>
+<g id="stars"></g>
+
+<!-- moon -->
+<circle cx="300" cy="130" r="150" fill="url(#moonGlow)"/>
+<circle cx="300" cy="130" r="72" fill="#f6ecc0"/>
+<g fill="#e2d397" opacity=".75"><circle cx="278" cy="110" r="11"/><circle cx="322" cy="152" r="15"/><circle cx="316" cy="98" r="6"/><circle cx="270" cy="160" r="7"/></g>
+
+<!-- witch -->
+<g id="witch"><g class="bob"><g transform="scale(1.2)">
+  <line x1="-34" y1="2" x2="36" y2="-6" stroke="#3a2614" stroke-width="2.6" stroke-linecap="round"/>
+  <path d="M-34 2 L-58 -7 L-60 4 L-57 13 Z" fill="#6b4a1f"/>
+  <path d="M-28 1 q0 -9 7 -9 l1 -4 2 3 2 -3 1 4 q2 3 0 9 z" fill="#0b0716"/>
+  <path d="M-28 0 q-6 -6 -4 -12" fill="none" stroke="#0b0716" stroke-width="1.6"/>
+  <path class="cape" d="M0 -22 Q-18 -26 -32 -13 Q-20 -11 -6 -10 Z" fill="#3a1450"/>
+  <path d="M-6 -2 L10 -2 L4 -24 L-2 -24 Z" fill="#0b0716"/>
+  <path d="M-4 -2 Q-18 -2 -22 6 L-2 2 Z" fill="#0b0716"/>
+  <path d="M6 -2 L10 8 L16 8" fill="none" stroke="#0b0716" stroke-width="2.4" stroke-linecap="round"/>
+  <path d="M2 -18 L12 -8 L18 -5" fill="none" stroke="#0b0716" stroke-width="2.4" stroke-linecap="round"/>
+  <circle cx="3" cy="-28" r="5" fill="#7fb069"/>
+  <path d="M7 -29 L13 -26 L7 -25 Z" fill="#7fb069"/>
+  <path d="M-1 -30 Q-11 -24 -15 -15 Q-6 -22 -1 -25 Z" fill="#3a1450"/>
+  <path d="M-8 -31 L14 -33" stroke="#0b0716" stroke-width="2.6" stroke-linecap="round"/>
+  <path d="M-2 -32 L8 -33 L-4 -51 Q-11 -53 -13 -46 Q-8 -48 -6 -45 Z" fill="#0b0716"/>
+</g></g></g>
+
+<!-- distant hills -->
+<path d="M-600 560 L-600 505 Q-300 475 -100 508 Q60 486 200 512 Q330 486 460 508 Q700 476 1000 504 L1000 560 Z" fill="#1c1a3c"/>
+
+<!-- spiral hill (Nightmare style) -->
+<path d="M-60 562 C-20 520 25 470 52 420 C64 395 70 375 70 356 L82 356 C85 380 92 412 112 452 C130 490 150 528 172 562 Z" fill="#17132e"/>
+<path d="M76 358 C72 328 99 314 112 330 C122 344 105 358 95 347 C89 339 97 332 102 337" fill="none" stroke="#17132e" stroke-width="9" stroke-linecap="round"/>
+
+<!-- dead tree -->
+<g fill="none" stroke="#0e0a18" stroke-linecap="round">
+  <path d="M396 560 C390 500 398 450 382 400 C374 375 378 350 370 320" stroke-width="14"/>
+  <path d="M386 420 C368 405 356 398 346 380 C342 372 348 364 342 360" stroke-width="5"/>
+  <path d="M382 395 C402 380 420 370 444 350" stroke-width="7"/>
+  <path d="M374 345 C362 330 352 300 358 285 C362 278 354 270 348 274" stroke-width="4"/>
+  <path d="M372 330 C387 310 402 300 424 300" stroke-width="4"/>
+</g>
+<g id="bats"></g>
+
+<!-- ground -->
+<path d="M-600 556 Q-200 545 0 556 Q120 548 200 556 Q300 549 400 555 Q700 545 1000 556 L1000 1400 L-600 1400 Z" fill="url(#dirt)"/>
+<path d="M-600 556 Q-200 545 0 556 Q120 548 200 556 Q300 549 400 555 Q700 545 1000 556" fill="none" stroke="#2f3a2a" stroke-width="3"/>
+
+<!-- house (enlarged) -->
+<g transform="translate(205 560) scale(1.15) translate(-205 -560)">
+<g stroke="#07040c" stroke-width="3" stroke-linejoin="round">
+  <path d="M250 340 L253 238 L289 234 L293 340 Z" fill="#241c33"/>
+  <path d="M244 242 L272 150 Q276 132 290 128 Q282 140 284 150 L300 238 Z" fill="#17111f"/>
+  <circle class="win f2" cx="271" cy="282" r="10" fill="url(#winGlow)"/>
+  <path d="M104 342 L206 178 Q212 166 220 172 L304 342 Z" fill="#17111f"/>
+  <path d="M150 300 L262 300 M128 324 L284 324 M176 258 L240 258 M196 222 L222 222" stroke="#2a2138" stroke-width="2"/>
+  <path class="win f3" d="M194 292 L194 272 Q206 256 218 272 L218 292 Z" fill="url(#winGlow)"/>
+  <!-- floor 2 -->
+  <path d="M126 444 L131 336 L281 338 L287 444 Z" fill="#2c2340"/>
+  <!-- floor 1 -->
+  <path d="M115 560 L119 440 L296 438 L293 560 Z" fill="#30263f"/>
+  <path d="M120 470 L294 469 M119 500 L294 499 M118 530 L293 529 M130 370 L283 371 M129 405 L285 406" stroke="#241b31" stroke-width="1.5"/>
+  <!-- floor 2 windows -->
+  <path class="win" d="M145 404 L145 374 Q161 352 177 374 L177 404 Z" fill="url(#winGlow)"/>
+  <path d="M161 360 L161 404 M145 386 L177 386" stroke-width="2"/>
+  <path d="M156 404 q-1 -10 3 -12 l1 -4 2 3 2 -3 1 4 q4 3 2 12 z" fill="#0b0716" stroke="none"/>
+  <path d="M195 404 L195 378 Q207 364 219 378 L219 404 Z" fill="#120c1c"/>
+  <path d="M195 378 L207 390 M207 366 L207 390 M219 380 L207 390" stroke="#4b4166" stroke-width=".8"/>
+  <path class="win f4" d="M258 438 L258 380 Q269 368 280 380 L280 438 Z" fill="url(#winGlow)" opacity=".85"/>
+  <!-- balcony -->
+  <rect x="279" y="430" width="60" height="6" fill="#17111f"/>
+  <path d="M286 436 L300 450 M332 436 L318 450" stroke-width="2.5"/>
+  <path d="M280 410 L339 410" stroke-width="3"/>
+  <path d="M286 410 V430 M294 410 V430 M302 410 V430 M310 410 V430 M318 410 V430 M326 410 V430 M334 410 V430" stroke-width="2"/>
+  <!-- floor 1 windows -->
+  <path class="win" d="M133 508 L133 474 Q151 452 169 474 L169 508 Z" fill="url(#winGlow)"/>
+  <path d="M151 462 L151 508 M133 486 L169 486" stroke-width="2"/>
+  <path class="win f4" d="M241 508 L241 474 Q259 452 277 474 L277 508 Z" fill="url(#winGlow)"/>
+  <path d="M259 462 L259 508 M241 486 L277 486" stroke-width="2"/>
+  <rect x="280" y="460" width="10" height="46" fill="#1d1528" transform="rotate(9 280 460)"/>
+  <circle class="win f3" cx="205" cy="455" r="10" fill="url(#winGlow)"/>
+  <path d="M195 455 L215 455 M205 445 L205 465" stroke-width="1.5"/>
+  <!-- porch -->
+  <rect x="174" y="472" width="62" height="6" fill="#17111f"/>
+  <path d="M179 478 V556 M231 478 V556" stroke="#07040c" stroke-width="3"/>
+  <path d="M190 556 L190 500 Q205 482 220 500 L220 556 Z" fill="#4a2a1a"/>
+  <circle cx="215" cy="530" r="2" fill="#e0b04a" stroke="none"/>
+  <circle cx="205" cy="510" r="4" fill="none" stroke="#e0b04a" stroke-width="1.5"/>
+  <rect x="176" y="554" width="58" height="6" fill="#3a2e46"/>
+  <rect x="170" y="560" width="70" height="6" fill="#3a2e46"/>
+  <rect x="164" y="566" width="82" height="6" fill="#3a2e46"/>
+</g>
+
+<!-- basement cut-away -->
+<g>
+  <path d="M118 584 L130 578 L142 584 L160 577 L178 583 L196 576 L214 584 L232 577 L250 583 L268 576 L284 582 L294 580 L292 600 L298 620 L291 640 L297 660 L290 680 L294 694 L276 690 L258 696 L240 689 L222 696 L204 690 L186 697 L168 690 L150 696 L132 690 L116 694 L120 676 L113 656 L121 636 L114 616 L121 598 Z" fill="#120b17" stroke="#3b2a33" stroke-width="3"/>
+  <g stroke="#23172b" stroke-width="1.5" fill="none">
+    <path d="M124 600 H290 M122 622 H292 M120 644 H292 M122 666 H290"/>
+    <path d="M150 600 V622 M190 600 V622 M240 600 V622 M170 622 V644 M215 622 V644 M260 622 V644 M140 644 V666 M195 644 V666 M245 644 V666 M165 666 V688 M220 666 V688"/>
+  </g>
+  <circle cx="205" cy="600" r="62" fill="url(#lampGlow)"/>
+  <line x1="205" y1="580" x2="205" y2="592" stroke="#5a4a5a" stroke-width="1"/>
+  <circle class="lamp" cx="205" cy="595" r="4" fill="#ffdf8a"/>
+  <path d="M200 690 V680 H212 V670 H224 V660 H236 V650 H248 V640 H260 V630 H286 V690 Z" fill="#2a1d24" stroke="#07040c" stroke-width="2"/>
+  <path d="M262 630 L262 598 Q273 586 284 598 L284 630 Z" fill="#4a2a1a" stroke="#07040c" stroke-width="2.5"/>
+  <circle cx="280" cy="614" r="1.6" fill="#e0b04a"/>
+  <line x1="158" y1="582" x2="158" y2="606" stroke="#7a7184" stroke-width="2" stroke-dasharray="3 2"/>
+  <g stroke="#7a7184" stroke-width="2" fill="none">
+    <path d="M132 628 Q158 598 184 628"/>
+    <path d="M132 628 V688 M139.5 619 V688 M147 613 V688 M154.5 610 V688 M162 610 V688 M169.5 613 V688 M177 619 V688 M184 628 V688"/>
+    <path d="M130 688 H186" stroke-width="4"/>
+  </g>
+  <rect x="178" y="648" width="10" height="8" rx="1.5" fill="#c9a227"/>
+  <path d="M180 648 v-3 a3 3 0 0 1 6 0 v3" fill="none" stroke="#c9a227" stroke-width="1.5"/>
+</g>
+
+</g>
+
+<!-- tombstones -->
+<g fill="#3c3650" stroke="#07040c" stroke-width="2.5">
+  <path d="M318 606 L318 584 Q330 568 342 584 L342 606 Z" transform="rotate(-6 330 606)"/>
+  <path d="M362 612 V594 H356 V588 H362 V580 H368 V588 H374 V594 H368 V612 Z" transform="rotate(8 365 612)"/>
+</g>
+<text x="329" y="596" font-size="7" font-weight="800" fill="#1e1a2b" text-anchor="middle" font-family="Nunito" transform="rotate(-6 330 606)">RIP</text>
+
+<!-- cauldron -->
+<g>
+  <ellipse class="googlow" cx="52" cy="556" rx="58" ry="42" fill="url(#gooGlow)"/>
+  <path class="steam" d="M42 562 q-6 -10 0 -18 q6 -8 0 -16" stroke="#c8ffb0" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <path class="steam" style="animation-delay:2s" d="M60 562 q6 -10 0 -18 q-6 -8 0 -16" stroke="#c8ffb0" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <path d="M22 622 L82 612 M24 612 L84 622" stroke="#3a2416" stroke-width="5" stroke-linecap="round"/>
+  <path class="flame" d="M30 618 Q26 600 38 588 Q38 602 45 604 Q45 592 52 584 Q57 598 61 602 Q65 592 68 588 Q80 602 74 618 Z" fill="#ff7b00"/>
+  <path class="flame f-b" d="M38 618 Q36 606 43 598 Q46 608 52 606 Q52 597 57 594 Q62 606 66 618 Z" fill="#ffd34d"/>
+  <path d="M30 600 L24 614 M74 600 L80 614" stroke="#0a070e" stroke-width="4" stroke-linecap="round"/>
+  <path d="M22 572 Q18 606 52 608 Q86 606 82 572 Z" fill="#141019" stroke="#050308" stroke-width="2.5"/>
+  <path d="M29 584 Q33 598 45 602" stroke="#3a3346" stroke-width="2" fill="none"/>
+  <ellipse cx="52" cy="572" rx="33" ry="7" fill="#2a2433" stroke="#050308" stroke-width="2.5"/>
+  <ellipse cx="52" cy="572" rx="28" ry="4.5" fill="#6fe23b"/>
+  <ellipse cx="49" cy="571" rx="15" ry="1.8" fill="#b6ff86" opacity=".7"/>
+  <path class="drip" d="M27 575 q-2 8 0 12 q2 -4 1 -12 z" fill="#6fe23b"/>
+  <path class="drip d2" d="M76 576 q-1 6 1 9 q2 -3 1 -9 z" fill="#6fe23b"/>
+  <g id="bubbles"></g>
+</g>
+
+<g id="pumpkins"></g>
+<g transform="translate(205 560) scale(1.15) translate(-205 -560)"><g id="pumpkinsH"></g></g>
+
+<g transform="translate(205 560) scale(1.15) translate(-205 -560)">
+<!-- skeleton -->
+<g id="skel" style="transform:translate(318px,410px)">
+  <g id="skelBody"><g transform="scale(1.3)">
+    <g class="sp" id="sLegL"><g class="swing sa"><path d="M-2 -13 L-4 -1 L-8 0"/></g></g>
+    <g class="sp" id="sLegR"><g class="swing sb"><path d="M2 -13 L4 -1 L8 0"/></g></g>
+    <g class="sp" id="sTorso"><path d="M0 -28 V-13 M-5 -25 Q0 -22 5 -25 M-5.5 -21.5 Q0 -18.5 5.5 -21.5 M-4.5 -18 Q0 -15.5 4.5 -18 M-4 -13 Q0 -10 4 -13"/></g>
+    <g class="sp" id="sArmL"><g class="swing sb"><path d="M-3 -26 L-8 -18 L-9 -11"/></g></g>
+    <g class="sp" id="sArmR"><g class="swing sa"><path d="M3 -26 L8 -18 L9 -11"/></g></g>
+    <g class="sp" id="sSkull"><circle cx="0" cy="-34" r="5.5" fill="#f3efe2" stroke="none"/><rect x="-3" y="-30" width="6" height="3" rx="1" fill="#f3efe2" stroke="none"/><circle cx="-2" cy="-34.5" r="1.5" fill="#0b0716" stroke="none"/><circle cx="2" cy="-34.5" r="1.5" fill="#0b0716" stroke="none"/></g>
+  </g></g>
+</g>
+
+<!-- ghost -->
+<g id="ghost"><g class="ghostbob">
+  <path d="M-11 12 L-11 -4 A11 11 0 0 1 11 -4 L11 12 L7 8 L3 12 L0 8 L-3 12 L-7 8 Z" fill="#eef0ff" opacity=".9"/>
+  <ellipse cx="-4" cy="-3" rx="2" ry="3" fill="#120b1c"/><ellipse cx="4" cy="-3" rx="2" ry="3" fill="#120b1c"/><ellipse cx="0" cy="4" rx="2" ry="2.5" fill="#120b1c"/>
+</g></g>
+
+</g>
+
+<!-- fog -->
+<g filter="url(#blur6)" opacity=".28">
+  <ellipse class="fog1" cx="100" cy="566" rx="170" ry="13" fill="#c9c4f0"/>
+  <ellipse class="fog2" cx="320" cy="584" rx="160" ry="11" fill="#b4c4ea"/>
+</g>
+
+<!-- spider -->
+<g id="spider">
+  <line x1="0" y1="-900" x2="0" y2="0" stroke="#cfc7e6" stroke-width=".7" opacity=".6"/>
+  <g stroke="#0b0716" stroke-width="1.4" fill="none"><path d="M-3 2 L-10 -3 M-3 4 L-11 4 M-3 6 L-10 11 M3 2 L10 -3 M3 4 L11 4 M3 6 L10 11"/></g>
+  <ellipse cx="0" cy="5" rx="4.5" ry="5.5" fill="#0b0716"/><circle cx="0" cy="-1" r="3" fill="#0b0716"/>
+  <circle cx="-1" cy="-1.5" r=".7" fill="#ff4d4d"/><circle cx="1" cy="-1.5" r=".7" fill="#ff4d4d"/>
+</g>
+
+<!-- quest path & hotspots -->
+<g transform="translate(205 560) scale(1.15) translate(-205 -560)">
+<g id="trail"></g>
+<g id="spots"></g>
+</g>
+</svg>
+
+<div class="hud"><h1>Haunted House</h1><div class="hud-r"><button class="lvl" id="lvlBtn" aria-label="Change level">B1</button><div class="keys" id="keys"></div></div></div>
+<div class="bar" id="bar"><div class="bar-txt"><b id="barTitle"></b><span id="barSub"></span></div><button class="btn sm" id="barBtn">Open</button></div>
+
+<!-- intro -->
+<div id="intro" class="screen"><div class="panel">
+  <div class="eyebrow">Halloween English Quest</div>
+  <h1 class="title">Escape the<br>Haunted House</h1>
+  <p>You came to a Halloween party… and woke up <b>locked in a cage</b> in the basement! 🕸️</p>
+  <p>Six doors stand between you and freedom. Each door opens only with <b>English</b>. Solve the tasks one by one and get out, if you dare!</p>
+  <p class="ru">Квест на английском: 6 заданий. Выберите свой уровень и попробуйте себя на других! Следующая дверь открывается, только когда пройдена предыдущая.</p>
+  <div class="pick">Choose your level 👇</div>
+  <div id="levels"></div>
+  <button class="link" id="resetBtn" hidden>Reset all progress</button>
+</div></div>
+
+<!-- win -->
+<div id="win" class="screen hidden"><div class="confetti" id="confetti"></div><div class="panel">
+  <div class="eyebrow">Halloween English Quest</div>
+  <h1 class="title">You're free!</h1>
+  <p>You escaped the Haunted House at level <b id="winLvl">B1</b> with <b id="mist">0</b>.</p>
+  <div class="badge" id="badge"></div>
+  <div class="cta"><b>English is a tool, so use it! 🗣️</b><br>Go to the channel and leave a <b>voice message in English</b> in the comments: tell us about the scariest moment of your life. 👻</div>
+  <p class="ru">Английский нужен, чтобы на нём говорить. Запишите голосовое на английском в комментариях!</p>
+  <button class="btn big" id="chanBtn">Go to the channel →</button>
+  <button class="btn big ghost" id="shareBtn">Challenge a friend 🦇</button>
+  <button class="btn big ghost" id="otherBtn">Try another level 🔁</button>
+  <button class="link" id="againBtn">Play this level again</button>
+</div></div>
+
+<div id="modal" class="modal hidden"><div class="card" id="card"></div></div>
+
+<script>
+/* ================= TASKS ================= */
+const ROOMS = [
+ { where:'Basement', name:'The Cage', icon:'⛓️', type:'mcq', title:'Spooky Words',
+   story:'You wake up in a rusty cage in a cold, dark basement. Someone has scratched a message on the lock: <i>“Know the words of the night, and I will open right.”</i>',
+   instr:'Choose the word that matches the meaning.', ru:'Выберите слово, которое подходит к определению.',
+   unlock:'<b>Click!</b> The rusty cage door swings open. You are out of the cage, but still in the basement…' },
+ { where:'Basement', name:'The Basement Door', icon:'💀', type:'mcq', title:'Scary Phrases',
+   story:'The basement door is locked. A skull on the wall whispers strange English expressions. Understand what they mean, and the door will open.',
+   instr:'What does the phrase in bold mean?', ru:'Что значит выделенное выражение?',
+   unlock:'The basement door groans open. Old stairs lead up to… the kitchen. Something smells terrible!' },
+ { where:'Kitchen', name:'The Kitchen Door', icon:'🧪', type:'mcq', title:'The Witch’s Recipe',
+   story:'The kitchen door is covered in green slime. The witch has left her recipe book on the floor, but some words are missing. Fill the gaps to get in.',
+   instr:'Choose the correct option for the gap.', ru:'Выберите правильный вариант, чтобы заполнить пропуск.',
+   unlock:'The kitchen door opens. The witch’s black cat hisses at you… but lets you pass into the living room.' },
+ { where:'Living room', name:'The Living Room Door', icon:'👻', type:'order', title:'The Ghost’s Message',
+   story:'A friendly ghost is guarding the living room. It is trying to tell you something, but its words are all mixed up. Put them in the right order!',
+   instr:'Tap the words to build the sentence.', ru:'Нажимайте на слова, чтобы собрать предложение. Нажмите на слово ещё раз, чтобы убрать его.',
+   unlock:'The ghost smiles, says “Thank you!” and disappears through the wall. The door to the hallway is open!' },
+ { where:'Hallway', name:'The Hallway Door', icon:'🖼️', type:'tf', title:'The Empty Portrait',
+   story:'In the hallway there is an old portrait… with an empty frame. Read its story and decide: true or false?',
+   instr:'Is the sentence true or false?', ru:'Прочитайте историю и решите: правда (True) или ложь (False)?',
+   unlock:'The lady in the portrait comes back and winks at you… The front door is right in front of you!' },
+ { where:'Porch', name:'The Front Door', icon:'🎃', type:'type', title:'The Door Knocker’s Riddles',
+   story:'The front door! Freedom is so close. But the old door knocker opens its iron mouth: <i>“Answer my riddles, or stay here forever!”</i>',
+   instr:'Type the answer in English.', ru:'Напишите ответ по-английски. Если трудно, нажмите Hint.',
+   unlock:'The front door flies open. Fresh night air, the smell of pumpkins… YOU ARE OUT!' }
+];
+
+/* Задания по уровням. В тестах ПЕРВЫЙ вариант ответа правильный (на экране они перемешиваются). */
+const LEVELS = {
+ A2:{ label:'A2', sub:'Elementary', emoji:'🕯️' },
+ B1:{ label:'B1', sub:'Intermediate', emoji:'🎃' },
+ B2:{ label:'B2', sub:'Upper-Intermediate', emoji:'💀' }
+};
+const TASKS = {
+ /* ================= A2 ================= */
+ A2:[
+  {questions:[
+    {q:'An orange vegetable. On Halloween people cut a face in it.', o:['pumpkin','potato','carrot','tomato']},
+    {q:'A small animal with eight legs. It makes webs.', o:['spider','snake','mouse','frog']},
+    {q:'A small animal that flies at night and sleeps upside down.', o:['bat','bird','bee','butterfly']},
+    {q:'The white spirit of a dead person. It says “Boo!”', o:['ghost','guest','goat','giant']},
+    {q:'Special clothes you wear to look like somebody else.', o:['costume','uniform','pyjamas','coat']}
+  ]},
+  {questions:[
+    {q:'I’m <b>afraid of</b> spiders.', o:['They scare me.','I love them.','I have a lot of them.','I’m looking for them.']},
+    {q:'<b>Trick or treat!</b>', o:['Give me sweets, or I will play a joke on you!','Happy birthday!','Good night!','Let’s go home!']},
+    {q:'This house is <b>haunted</b>.', o:['There are ghosts in it.','It is very old and expensive.','It is new and clean.','Nobody can find it.']},
+    {q:'Don’t be <b>scared</b>! It’s only a cat.', o:['afraid','angry','sad','tired']},
+    {q:'It’s <b>pitch-dark</b> in here!', o:['very, very dark','very cold','very quiet','very small']}
+  ]},
+  {questions:[
+    {q:'Last night a ghost ___ into my room.', o:['came','comes','is coming','come'], tip:'“Last night” → Past Simple. Come, came (irregular verb).'},
+    {q:'Look! The witch ___ on her broom!', o:['is flying','flies','flew','fly'], tip:'“Look!”, it is happening now → Present Continuous: is + verb-ing.'},
+    {q:'There ___ three black cats in the kitchen.', o:['are','is','be','am'], tip:'Three cats, plural → there are.'},
+    {q:'This potion is ___ than that one.', o:['stronger','more strong','strongest','the strong'], tip:'Short adjective + -er + than: strong → stronger than.'},
+    {q:'Tonight we ___ carve pumpkins.', o:['are going to','going to','are go to','will to'], tip:'Plans for the future: am/is/are going to + verb.'}
+  ]},
+  {questions:[
+    {s:'Where is the black cat?', ru:'Где чёрный кот?'},
+    {s:'I can hear a strange noise.', ru:'Я слышу странный шум.'},
+    {s:'Do you like scary films?', ru:'Ты любишь страшные фильмы?'},
+    {s:'The ghost lives in the old house.', ru:'Привидение живёт в старом доме.'},
+    {s:'Don’t open the door at night!', ru:'Не открывай дверь ночью!'}
+  ]},
+  {passageTitle:'The Portrait in the Hallway',
+   passage:'There is an old portrait in the hallway. It shows a lady in a green dress. In the day, she smiles. But at midnight, she stops smiling and her eyes move! Last Halloween, a boy called Tom stayed in the hallway at night. He had a torch and a sandwich. At 11:55 his torch stopped working. Tom took his phone and looked at the portrait. The lady was not there! The frame was empty. Tom was very scared and ran home. People say the lady is still in the house.',
+   questions:[
+    {q:'The lady in the portrait wears a green dress.', a:true},
+    {q:'The lady smiles at midnight.', a:false, tip:'At midnight she <b>stops</b> smiling.'},
+    {q:'Tom had a torch and a sandwich.', a:true},
+    {q:'Tom’s torch stopped working at 12:00.', a:false, tip:'It stopped at 11:55.'},
+    {q:'Tom was scared and ran home.', a:true}
+  ]},
+  {questions:[
+    {q:'I wear a tall black hat and fly on a broom. What am I?', a:['witch']},
+    {q:'I’m black, I have a long tail and I say “meow”. Witches love me. What am I?', a:['cat','black cat']},
+    {q:'I’m white, I fly through walls and I say “Boo!” What am I?', a:['ghost']},
+    {q:'Children wear me on Halloween to look like monsters. What am I?', a:['costume','costumes','mask','masks']}
+  ]}
+ ],
+ /* ================= B1 ================= */
+ B1:[
+  {questions:[
+    {q:'A big black pot where a witch cooks her potions.', o:['cauldron','coffin','broomstick','cobweb']},
+    {q:'A long box in which a dead person is buried.', o:['coffin','cupboard','cradle','chest of drawers']},
+    {q:'A stone with a name on it that stands over a grave.', o:['tombstone','milestone','gravel','doorstep']},
+    {q:'Thin, sticky threads that spiders leave in old, dark corners.', o:['cobwebs','cobblestones','curtains','clouds']},
+    {q:'A dead body that is wrapped in long strips of cloth.', o:['mummy','zombie','vampire','werewolf']}
+  ]},
+  {questions:[
+    {q:'That old doll <b>gives me the creeps</b>.', o:['It makes me feel nervous and uncomfortable.','It makes me laugh.','It makes me hungry.','It reminds me of my childhood.']},
+    {q:'I was <b>scared stiff</b> when the lights went out.', o:['I was extremely frightened.','I was very bored.','I was a little cold.','I was completely calm.']},
+    {q:'Every family has <b>a skeleton in the closet</b>.', o:['a secret they are ashamed of','an old Halloween costume','a broken piece of furniture','a family doctor']},
+    {q:'His story <b>made my blood run cold</b>.', o:['It frightened me a lot.','It made me angry.','It made me sleepy.','It made me catch a cold.']},
+    {q:'Stop being such a <b>scaredy-cat</b>!', o:['a person who is easily frightened','a black cat','a very brave person','a person who loves cats']}
+  ]},
+  {questions:[
+    {q:'While the witch ___ her potion, a black cat jumped onto the table.', o:['was stirring','stirred','has stirred','is stirring'], tip:'Past Continuous (was stirring), a long action; Past Simple (jumped), a short action that interrupted it.'},
+    {q:'If you drink this potion, you ___ invisible.', o:['will become','would become','became','becoming'], tip:'First Conditional: If + Present Simple, … will + verb. A real possibility!'},
+    {q:'Nobody ___ in this kitchen since 1890.', o:['has cooked','cooked','is cooking','cooks'], tip:'“since 1890” → Present Perfect: has/have + V3.'},
+    {q:'This soup ___ from frogs’ legs and spiders’ eyes.', o:['is made','makes','is making','made of'], tip:'Passive voice: is/are + V3. Somebody makes the soup, the soup is made.'},
+    {q:'The witch ___ live in this house, but now she lives in the forest.', o:['used to','uses to','was used','is used to'], tip:'“used to + verb”, something that was true in the past, but not now.'}
+  ]},
+  {questions:[
+    {s:'Have you ever seen a real ghost?', ru:'Ты когда-нибудь видел настоящее привидение?'},
+    {s:'I’m too scared to go upstairs alone.', ru:'Мне слишком страшно идти наверх одному.'},
+    {s:'Somebody is knocking on the window!', ru:'Кто-то стучит в окно!'},
+    {s:'The lights went out when the clock struck twelve.', ru:'Свет погас, когда часы пробили двенадцать.'},
+    {s:'We should have stayed at home tonight.', ru:'Нам стоило остаться сегодня дома.', tip:'should have + V3, we regret something in the past.'}
+  ]},
+  {passageTitle:'The Portrait in the Hallway',
+   passage:'Every night at midnight, the old portrait in the hallway changes. In the daytime, it shows a smiling lady in a green dress. But when the clock strikes twelve, her smile disappears and her eyes start to follow you. Last Halloween, a boy called Tom decided to stay in the hallway all night to prove that the story wasn’t true. He brought a torch, a sandwich and his phone. At 11:55 his torch suddenly went out. When he finally managed to switch on his phone, the lady in the portrait was gone, the frame was empty. Tom ran out of the house and never came back. Nobody knows where the lady went, but some people say she is still walking around the house, looking for her frame.',
+   questions:[
+    {q:'The lady in the portrait smiles during the day.', a:true},
+    {q:'Tom stayed in the hallway because he believed the story.', a:false, tip:'He wanted to prove that the story <b>wasn’t</b> true.'},
+    {q:'Tom’s torch stopped working before midnight.', a:true, tip:'It went out at 11:55.'},
+    {q:'When Tom looked at the portrait, the lady’s eyes were following him.', a:false, tip:'The frame was empty, the lady was gone.'},
+    {q:'Some people believe the lady is looking for her frame.', a:true}
+  ]},
+  {questions:[
+    {q:'I’m round and orange. People cut a scary face in me and put a candle inside. What am I?', a:['pumpkin','jack-o’-lantern','jack-o-lantern','jack o lantern','pumpkins']},
+    {q:'I have no skin, no hair and no heart, but I have 206 bones. What am I?', a:['skeleton']},
+    {q:'Children knock on doors on Halloween and say these three words to get sweets. What do they say?', a:['trick or treat','trick-or-treat']},
+    {q:'I sleep upside down in the day, fly at night, and some say I can turn into a vampire. What am I?', a:['bat','bats']}
+  ]}
+ ],
+ /* ================= B2 ================= */
+ B2:[
+  {questions:[
+    {q:'A loud, high cry of sudden fear or pain.', o:['shriek','whisper','sigh','mumble']},
+    {q:'An underground room, especially under a church, where people are buried.', o:['crypt','loft','pantry','gallery']},
+    {q:'Strange and frightening in a way that is hard to explain.', o:['eerie','cosy','tedious','vivid']},
+    {q:'To shake slightly because you are cold or frightened.', o:['shiver','shrug','stumble','swagger']},
+    {q:'A dead body, especially of a human being.', o:['corpse','corps','core','course']}
+  ]},
+  {questions:[
+    {q:'The film was so frightening that it <b>made my hair stand on end</b>.', o:['It terrified me.','It bored me to death.','It made me laugh.','It ruined my hairstyle.']},
+    {q:'When a face appeared at the window, I <b>jumped out of my skin</b>.', o:['I was extremely startled.','I ran out of the room.','I took off my costume.','I felt slightly ill.']},
+    {q:'In winter, this seaside resort is <b>a ghost town</b>.', o:['It is almost completely empty.','It is full of ghosts.','It is extremely cold.','It is very noisy.']},
+    {q:'The hotel runs with <b>a skeleton staff</b> over the holidays.', o:['only the minimum number of workers','very thin employees','staff dressed as skeletons','a team of new employees']},
+    {q:'“<b>Over my dead body!</b>” said Grandma when we suggested selling the house.', o:['I will never allow it.','I am far too tired.','What a great idea!','I need time to think about it.']}
+  ]},
+  {questions:[
+    {q:'If we ___ that the house was haunted, we would never have gone inside.', o:['had known','knew','would know','have known'], tip:'Third Conditional: If + Past Perfect, … would have + V3, an imaginary past.'},
+    {q:'By the time the police arrived, the ghost ___.', o:['had vanished','vanished','has vanished','was vanishing'], tip:'Past Perfect, an action that was finished before another past moment.'},
+    {q:'The cauldron is still warm, the witch ___ left very recently.', o:['must have','can’t have','should','had to'], tip:'Deduction about the past: must have + V3 = I’m almost sure it happened.'},
+    {q:'Never ___ such a terrifying sound!', o:['have I heard','I have heard','I heard','did I ever heard'], tip:'Inversion after negative adverbs (Never, Rarely, Seldom): Never have I…'},
+    {q:'I wish I ___ that strange green potion last night.', o:['hadn’t drunk','didn’t drink','wouldn’t drink','haven’t drunk'], tip:'Regret about the past: wish + Past Perfect.'}
+  ]},
+  {questions:[
+    {s:'Had I known about the ghost, I would have stayed away.', ru:'Если бы я знал о привидении, я бы держался подальше.', tip:'Had I known… = If I had known… (inversion).'},
+    {s:'The house is said to have been empty for decades.', ru:'Говорят, что дом пустует уже десятки лет.'},
+    {s:'No sooner had we entered than the door slammed shut.', ru:'Не успели мы войти, как дверь захлопнулась.'},
+    {s:'You had better not go down to the cellar alone.', ru:'Тебе лучше не спускаться в подвал одному.'},
+    {s:'Whoever painted this portrait must have been terrified.', ru:'Тот, кто нарисовал этот портрет, должно быть, был в ужасе.'}
+  ]},
+  {passageTitle:'The Portrait in the Hallway',
+   passage:'Nobody remembers exactly when the portrait first appeared in the hallway, but the locals all agree on one thing: it is no ordinary painting. By day, it depicts a serene young woman in an emerald-green gown, her lips curved into a faint smile. Yet as the grandfather clock strikes midnight, her expression is said to darken, and her eyes appear to follow anyone foolish enough to linger. Last Halloween, a sceptical student named Tom set out to debunk the legend once and for all. Armed with a torch, a flask of coffee and a fully charged phone, he settled into an armchair opposite the painting, determined to film whatever happened. At five minutes to midnight, his torch flickered and died. By the time he had fumbled for his phone and switched on its light, the canvas was blank, the woman had vanished, leaving behind only an empty gilded frame. Tom fled the house without recording a single second of footage and has refused to discuss that night ever since. Some claim the woman still wanders the corridors, searching for the frame she was forced to abandon.',
+   questions:[
+    {q:'Local people disagree about whether the portrait is unusual.', a:false, tip:'The locals <b>all agree</b> it is no ordinary painting.'},
+    {q:'Tom went to the house because he wanted to prove the legend was false.', a:true, tip:'To <b>debunk</b> a legend = to show that it is not true.'},
+    {q:'Tom managed to film the moment the woman disappeared.', a:false, tip:'He left “without recording a single second of footage”.'},
+    {q:'The torch stopped working shortly before midnight.', a:true, tip:'At five minutes to midnight it “flickered and died”.'},
+    {q:'These days Tom enjoys telling people about that night.', a:false, tip:'He “has refused to discuss that night ever since”.'}
+  ]},
+  {questions:[
+    {q:'The more of me there is, the less you can see. Ghosts and bats love me. What am I?', a:['darkness','dark','the dark']},
+    {q:'I have a neck but no head, and I wear a cap. Witches keep their potions in me. What am I?', a:['bottle','a bottle']},
+    {q:'By day I am an ordinary man, but when the full moon rises, I grow fur and howl. What am I?', a:['werewolf','a werewolf']},
+    {q:'Which room in a house can a ghost never enter? (Think about it… ghosts aren’t alive!)', a:['living room','the living room','livingroom']}
+  ]}
+ ]
+};
+
+/* ================= TELEGRAM ================= */
+const tg = window.Telegram && window.Telegram.WebApp;
+const inTG = !!(tg && tg.initData);
+if (tg) {
+  try { tg.ready(); tg.expand(); } catch(e){}
+  try { tg.setHeaderColor('#0b0620'); tg.setBackgroundColor('#0b0620'); } catch(e){}
+  try { tg.disableVerticalSwipes && tg.disableVerticalSwipes(); } catch(e){}
+}
+function haptic(t){ if(!inTG) return; try{ t==='tap' ? tg.HapticFeedback.selectionChanged() : tg.HapticFeedback.notificationOccurred(t); }catch(e){} }
+function openLink(url){ if(inTG){ try{ tg.openTelegramLink(url); return; }catch(e){} } window.open(url,'_blank'); }
+
+/* ================= STATE ================= */
+const STORE='hh-escape-v2';
+const blank=()=>({done:0,mistakes:0});
+let state={level:'B1',levels:{A2:blank(),B1:blank(),B2:blank()}};
+const P=()=>state.levels[state.level];
+const totalDone=x=>Object.values(x.levels).reduce((a,l)=>a+l.done,0);
+function fixState(s){ if(!s||!s.levels) return null; for(const k in LEVELS) if(!s.levels[k]) s.levels[k]=blank(); if(!LEVELS[s.level]) s.level='B1'; return s; }
+try{ const s=fixState(JSON.parse(localStorage.getItem(STORE))); if(s) state=s; }catch(e){}
+function save(){
+  const v=JSON.stringify(state);
+  try{ localStorage.setItem(STORE,v); }catch(e){}
+  if(inTG && tg.isVersionAtLeast && tg.isVersionAtLeast('6.9')){ try{ tg.CloudStorage.setItem(STORE,v); }catch(e){} }
+}
+function loadCloud(cb){
+  if(!(inTG && tg.isVersionAtLeast && tg.isVersionAtLeast('6.9'))) return cb();
+  try{ tg.CloudStorage.getItem(STORE,(err,val)=>{ try{ const s=fixState(JSON.parse(val)); if(s && totalDone(s)>totalDone(state)) state=s; }catch(e){} cb(); }); }catch(e){ cb(); }
+}
+
+/* ================= HELPERS ================= */
+const $=s=>document.querySelector(s);
+const NS='http://www.w3.org/2000/svg';
+const rnd=(a,b)=>a+Math.random()*(b-a);
+const wait=ms=>new Promise(r=>setTimeout(r,ms));
+const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;};
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+const svgAdd=(parent,html)=>parent.insertAdjacentHTML('beforeend',html);
+const norm=s=>s.toLowerCase().trim().replace(/^(a|an|the)\s+/,'').replace(/[^a-z]/g,'');
+
+/* ================= SCENE DECORATIONS ================= */
+(function buildScene(){
+  let st='';
+  for(let i=0;i<70;i++){
+    st+=`<circle class="tw" cx="${rnd(-300,700).toFixed(1)}" cy="${rnd(-300,430).toFixed(1)}" r="${rnd(.5,1.6).toFixed(2)}" fill="#fff" style="animation-delay:${rnd(0,3).toFixed(2)}s;animation-duration:${rnd(2,5).toFixed(2)}s"/>`;
+  }
+  svgAdd($('#stars'),st);
+
+  // jack-o-lanterns with a candle inside: x, y, scale, onHouse
+  const P=[[156,572,.8,1],[254,572,.8,1],[151,508,.45,1],[62,648,.85],[346,632,1],[-20,600,.9],[420,606,.9]];
+  let ph='', phH='';
+  P.forEach(([x,y,sc,h])=>{
+    const st=`style="animation-delay:-${rnd(0,4).toFixed(2)}s;animation-duration:${rnd(1.3,2).toFixed(2)}s"`;
+    const g=`<g transform="translate(${x} ${y}) scale(${sc})">
+      <circle class="pglow" style="animation-delay:-${rnd(0,4).toFixed(2)}s" cy="-10" r="30" fill="url(#pglow)"/>
+      <path d="M-1 -21 q2 -7 7 -9" stroke="#3d5a1e" stroke-width="3" fill="none" stroke-linecap="round"/>
+      <ellipse cx="-8" cy="-10" rx="9" ry="11" fill="#d9661a"/>
+      <ellipse cx="8" cy="-10" rx="9" ry="11" fill="#d9661a"/>
+      <ellipse cx="0" cy="-10" rx="8.5" ry="12" fill="#f0862a"/>
+      <g clip-path="url(#faceHoles)">
+        <rect x="-12" y="-22" width="24" height="22" fill="url(#candleIn)"/>
+        <rect x="-2.6" y="-2.2" width="5.2" height="4" rx="1" fill="#fff3d6"/><g class="candle" ${st}><path d="M0 -15 C3 -10.5 4.2 -6 0 -2 C-4.2 -6 -3 -10.5 0 -15 Z" fill="#ffd23d"/><path d="M0 -11.5 C1.6 -9 2.2 -5.8 0 -3.2 C-2.2 -5.8 -1.6 -9 0 -11.5 Z" fill="#fffef5"/></g>
+      </g></g>`;
+    if(h) phH+=g; else ph+=g;
+  });
+  svgAdd($('#pumpkinsH'),phH);
+  svgAdd($('#pumpkins'),ph);
+
+  // bubbles in the cauldron
+  let b='';
+  for(let i=0;i<8;i++) b+=`<circle class="bub" cx="${rnd(32,72).toFixed(1)}" cy="571" r="${rnd(1.8,3.6).toFixed(1)}" fill="#8cff5a" stroke="#4fbf25" stroke-width=".8" style="animation-delay:${rnd(0,2.4).toFixed(2)}s;animation-duration:${rnd(1.6,3).toFixed(2)}s"/>`;
+  for(let i=0;i<4;i++) b+=`<circle class="blob" cx="${rnd(34,70).toFixed(1)}" cy="570" r="${rnd(2.5,4.5).toFixed(1)}" fill="#a6ff7a" style="animation-delay:${rnd(0,1.8).toFixed(2)}s;animation-duration:${rnd(1.4,2.4).toFixed(2)}s"/>`;
+  svgAdd($('#bubbles'),b);
+
+  // bats
+  const batsG=$('#bats');
+  for(let i=0;i<5;i++){
+    const g=document.createElementNS(NS,'g');
+    g.innerHTML=`<g transform="scale(${rnd(.7,1.2).toFixed(2)})"><path class="wing" style="animation-duration:${rnd(.16,.28).toFixed(2)}s" d="M0 0 C-4 -6 -10 -6 -14 -2 C-11 -2 -10 0 -10 2 C-8 0 -6 0 -4 2 C-3 0 -1 0 0 1 C1 0 3 0 4 2 C6 0 8 0 10 2 C10 0 11 -2 14 -2 C10 -6 4 -6 0 0 Z" fill="#0b0716"/></g>`;
+    batsG.appendChild(g);
+    const pts=[];
+    for(let k=0;k<6;k++) pts.push({transform:`translate(${rnd(200,420).toFixed(0)}px,${rnd(60,330).toFixed(0)}px)`});
+    g.animate(pts,{duration:rnd(14000,24000),iterations:Infinity,direction:'alternate',easing:'ease-in-out'});
+  }
+})();
+
+/* ================= SKELETON (every 60 s) ================= */
+const skel=$('#skel'), sBody=$('#skelBody');
+const PARTS={skull:$('#sSkull'),torso:$('#sTorso'),armL:$('#sArmL'),armR:$('#sArmR'),legL:$('#sLegL'),legR:$('#sLegR')};
+const SCATTER={
+  skull:'translate(18px,28px) rotate(200deg)', torso:'translate(-4px,14px) rotate(90deg)',
+  armL:'translate(-16px,17px) rotate(-75deg)', armR:'translate(12px,18px) rotate(110deg)',
+  legL:'translate(-10px,6px) rotate(-80deg)', legR:'translate(7px,7px) rotate(75deg)'
+};
+const SX=318, SY=410, SG=570;
+const at=(x,y)=>`translate(${x}px,${y}px)`;
+let skelBusy=false;
+async function skeletonShow(){
+  if(skelBusy || document.hidden) return;
+  skelBusy=true;
+  try{
+    // wobbles on the balcony rail
+    const wob=sBody.animate([{transform:'rotate(0)'},{transform:'rotate(-10deg)'},{transform:'rotate(8deg)'},{transform:'rotate(-14deg)'},{transform:'rotate(30deg)'}],{duration:1500,easing:'ease-in-out',fill:'forwards'});
+    await wob.finished;
+    // falls
+    const spin=sBody.animate([{transform:'rotate(30deg)'},{transform:'rotate(190deg)'}],{duration:700,easing:'ease-in',fill:'forwards'});
+    await skel.animate([{transform:at(SX,SY)},{transform:at(SX+8,SG)}],{duration:700,easing:'cubic-bezier(.55,0,1,.45)',fill:'forwards'}).finished;
+    spin.cancel(); wob.cancel();
+    // falls to pieces
+    const sc=Object.entries(PARTS).map(([k,el])=>el.animate([{transform:'translate(0,0) rotate(0)'},{transform:SCATTER[k]}],{duration:380,easing:'cubic-bezier(.2,.8,.3,1)',fill:'forwards'}));
+    haptic('warning');
+    await wait(1800);
+    // pulls itself together
+    const back=Object.entries(PARTS).map(([k,el],i)=>el.animate([{transform:SCATTER[k]},{transform:'translate(0,0) rotate(0)'}],{duration:850,delay:i*110,easing:'cubic-bezier(.34,1.56,.64,1)',fill:'forwards'}));
+    await Promise.all(back.map(a=>a.finished));
+    sc.concat(back).forEach(a=>a.cancel());
+    await skel.animate([{transform:at(SX+8,SG)},{transform:at(SX+8,SG-16)},{transform:at(SX+8,SG)}],{duration:420,easing:'ease-out'}).finished;
+    await PARTS.skull.animate([{transform:'rotate(0)'},{transform:'rotate(-25deg)'},{transform:'rotate(25deg)'},{transform:'rotate(0)'}],{duration:600}).finished;
+    // runs away
+    skel.classList.add('running');
+    await skel.animate([{transform:at(SX+8,SG)},{transform:at(720,SG)}],{duration:3400,easing:'ease-in',fill:'forwards'}).finished;
+    skel.classList.remove('running');
+    skel.style.opacity=0;
+    skel.getAnimations().forEach(a=>a.cancel());
+    await wait(2500);
+    await skel.animate([{opacity:0},{opacity:1}],{duration:1200}).finished;
+    skel.style.opacity=1;
+  } catch(e){ skel.style.opacity=1; }
+  skelBusy=false;
+}
+setTimeout(()=>{ skeletonShow(); setInterval(skeletonShow,60000); },5000);
+
+/* ================= MAP ================= */
+const SPOTS=[[158,655],[273,608],[263,484],[151,484],[205,455],[205,524]];
+(function buildMap(){
+  let t='', s='';
+  for(let i=0;i<SPOTS.length-1;i++){ const [a,b]=SPOTS[i], [c,d]=SPOTS[i+1]; t+=`<line class="trail" data-i="${i}" x1="${a}" y1="${b}" x2="${c}" y2="${d}"/>`; }
+  SPOTS.forEach(([x,y],i)=>{ s+=`<g class="hs locked" data-i="${i}" transform="translate(${x} ${y})"><circle class="hit" r="26"/><circle class="ring" r="14"/><circle class="dot" r="13"/><text class="lbl" y="4.5" text-anchor="middle">${i+1}</text></g>`; });
+  svgAdd($('#trail'),t); svgAdd($('#spots'),s);
+  $('#spots').addEventListener('click',e=>{ const g=e.target.closest('.hs'); if(!g) return; const i=+g.dataset.i;
+    if(i===P().done) openRoom(i);
+    else if(i<P().done){ haptic('tap'); }
+    else { haptic('error'); flashBar('🔒 Locked! Open door '+(P().done+1)+' first.'); } });
+  $('#keys').innerHTML=ROOMS.map(()=>'<span>🗝️</span>').join('');
+})();
+function updateMap(){
+  document.querySelectorAll('.hs').forEach(g=>{
+    const i=+g.dataset.i; g.classList.remove('locked','current','done');
+    g.classList.add(i<P().done?'done':i===P().done?'current':'locked');
+    g.querySelector('.lbl').textContent = i<P().done ? '✓' : i+1;
+  });
+  document.querySelectorAll('.trail').forEach(l=>l.classList.toggle('done',+l.dataset.i<P().done));
+  $('#lvlBtn').textContent=state.level+' ▾';
+  document.querySelectorAll('#keys span').forEach((k,i)=>k.classList.toggle('on',i<P().done));
+  if(P().done<6){
+    const r=ROOMS[P().done];
+    $('#barTitle').textContent=`Door ${P().done+1} of 6: ${r.name}`;
+    $('#barSub').textContent=`${r.icon} ${r.title} · tap the glowing number`;
+    $('#barBtn').textContent='Open';
+  } else {
+    $('#barTitle').textContent='You escaped! 🎉';
+    $('#barSub').textContent='All 6 doors are open';
+    $('#barBtn').textContent='Results';
+  }
+}
+let barTimer;
+function flashBar(msg){ const sub=$('#barSub'), old=sub.textContent; sub.textContent=msg; clearTimeout(barTimer); barTimer=setTimeout(updateMap,2200); }
+$('#barBtn').onclick=()=>{ P().done<6 ? openRoom(P().done) : showWin(); };
+
+/* ================= VOICE-OVER ================= */
+/* Аудио лежит в файлах voice-common.js, voice-A2.js, voice-B1.js, voice-B2.js.
+   Если для фразы записи нет, читает встроенный голос телефона. */
+window.VOICE=window.VOICE||{};
+let voiceOn=true;
+try{ voiceOn=localStorage.getItem('hh-voice')!=='off'; }catch(e){}
+let audio=null, sayList=[];
+const cleanText=t=>{ const d=document.createElement('div'); d.innerHTML=t; return d.textContent.replace(/\s+/g,' ').trim(); };
+const cleanWord=w=>w.replace(/^[^A-Za-z’']+|[^A-Za-z’']+$/g,'');
+const loadedVoice={};
+function loadVoice(name){
+  if(loadedVoice[name]) return; loadedVoice[name]=1;
+  const sc=document.createElement('script'); sc.src=`voice-${name}.js`; sc.async=true; document.head.appendChild(sc);
+}
+function stopVoice(){
+  if(audio){ audio.pause(); audio=null; }
+  try{ speechSynthesis.cancel(); }catch(e){}
+  document.querySelectorAll('.say.playing').forEach(b=>b.classList.remove('playing'));
+}
+function speak(text,btn){
+  if(!voiceOn || !text) return;
+  stopVoice();
+  const key=cleanText(text), done=()=>btn&&btn.classList.remove('playing');
+  if(btn) btn.classList.add('playing');
+  const src=window.VOICE[key];
+  if(src){ audio=new Audio(src); audio.onended=done; audio.play().catch(done); return; }
+  try{
+    const u=new SpeechSynthesisUtterance(key); u.lang='en-US'; u.rate=.9;
+    const vs=speechSynthesis.getVoices(); const v=vs.find(v=>/^en[-_]US/i.test(v.lang))||vs.find(v=>/^en/i.test(v.lang)); if(v) u.voice=v;
+    u.onend=done; u.onerror=done; speechSynthesis.speak(u);
+  }catch(e){ done(); }
+}
+function sayBtn(text,label){ sayList.push(text); return `<button class="say${label?' wide':''}" data-say="${sayList.length-1}" aria-label="Listen"${voiceOn?'':' hidden'}>${label||'🔊'}</button>`; }
+function voiceLabel(){ return voiceOn?'🔊 Sound on':'🤫 Shh… sound off'; }
+function setVoice(on){
+  voiceOn=on; try{ localStorage.setItem('hh-voice',on?'on':'off'); }catch(e){}
+  if(!on) stopVoice();
+  document.querySelectorAll('.vt').forEach(b=>{ b.textContent=voiceLabel(); b.classList.toggle('off',!on); });
+  document.querySelectorAll('.say').forEach(b=>b.hidden=!on);
+}
+
+/* ================= TASK MODAL ================= */
+const modal=$('#modal'), card=$('#card');
+let cur=null;
+const PRAISE=['Correct!','Spook-tacular!','Well done!','Brilliant!','Boo-tiful!','Wicked good!'];
+const OOPS=['❌ Not quite. Try again!','❌ Oops! The ghosts are laughing. Try again!','❌ Wrong, but don’t give up!'];
+
+function backBtn(show){ if(!inTG || !tg.isVersionAtLeast || !tg.isVersionAtLeast('6.1')) return; try{ show?tg.BackButton.show():tg.BackButton.hide(); }catch(e){} }
+if(inTG){ try{ tg.BackButton.onClick(closeModal); }catch(e){} }
+function closeModal(){ stopVoice(); modal.classList.add('hidden'); cur=null; backBtn(false); }
+card.addEventListener('click',e=>{
+  if(e.target.closest('[data-close]')) return closeModal();
+  if(e.target.closest('.vt')) return setVoice(!voiceOn);
+  const b=e.target.closest('.say'); if(!b) return;
+  if(b.classList.contains('playing')) stopVoice(); else speak(sayList[+b.dataset.say],b);
+});
+
+function openRoom(i){
+  if(i!==P().done || i>5) return;
+  haptic('tap');
+  cur={room:Object.assign({},ROOMS[i],TASKS[state.level][i]), idx:i, qi:-1};
+  modal.classList.remove('hidden'); backBtn(true);
+  const r=cur.room;
+  sayList=[];
+  card.innerHTML=head()+`<div class="story">${sayBtn(r.story)}${r.story}</div><div class="task-name">🕯️ ${r.title}</div><p class="instr">${r.instr}</p><p class="ru">${r.ru}</p><div id="next"><button class="btn" id="go">I’m ready!</button></div>`;
+  $('#go').onclick=()=>{ cur.qi=0; renderQ(); };
+}
+function head(){
+  const r=cur.room, n=cur.idx+1, total=r.questions.length;
+  let dots='';
+  if(cur.qi>=0 && cur.qi<total) dots='<div class="dots">'+r.questions.map((_,i)=>`<i class="${i<cur.qi?'d':i===cur.qi?'c':''}"></i>`).join('')+'</div>';
+  return `<div class="ctop"><span class="tag">${r.icon} Door ${n}/6 · ${r.where} · ${state.level}</span><span class="ctop-r"><button class="vt${voiceOn?'':' off'}">${voiceLabel()}</button><button class="x" data-close aria-label="Close">✕</button></span></div><h2>${r.name}</h2>${dots}`;
+}
+function renderQ(){
+  card.scrollTop=0; stopVoice(); sayList=[];
+  const r=cur.room, q=r.questions[cur.qi];
+  if(!q) return renderUnlock();
+  if(r.type==='mcq'||r.type==='tf') renderChoice(q);
+  else if(r.type==='order') renderOrder(q);
+  else renderType(q);
+}
+function correct(tip){
+  haptic('success');
+  $('#fb').innerHTML=`<div class="good">✅ ${pick(PRAISE)}</div>${tip?`<div class="tip">💡 ${tip}</div>`:''}`;
+  const last=cur.qi===cur.room.questions.length-1;
+  $('#next').innerHTML=`<button class="btn" id="nb">${last?'Open the door 🗝️':'Next →'}</button>`;
+  $('#nb').onclick=()=>{ cur.qi++; renderQ(); };
+  $('#nb').scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+function wrong(msg){
+  haptic('error'); P().mistakes++; save();
+  $('#fb').innerHTML=`<div class="bad">${msg||pick(OOPS)}</div>`;
+  card.classList.remove('shake'); void card.offsetWidth; card.classList.add('shake');
+}
+function renderChoice(q){
+  const r=cur.room, tf=r.type==='tf';
+  const opts=tf?['True','False']:shuffle(q.o.slice());
+  const right=tf?(q.a?'True':'False'):q.o[0];
+  const gap=q.q.includes('___'), full=gap?q.q.replace('___',right):q.q;
+  card.innerHTML=head()
+    +(tf?`<div class="passage"><b>📜 ${r.passageTitle}</b>${sayBtn(r.passage,'🎧 Listen to the story')}${r.passage}</div>`:'')
+    +`<p class="instr">${r.instr}</p><div class="q">${gap?'':sayBtn(q.q)}${q.q.replace(/___/g,'<span class="gap">?</span>')}</div>`
+    +`<div class="opts ${tf?'two':''}">${opts.map(o=>`<button class="opt">${o}</button>`).join('')}</div><div class="fb" id="fb"></div><div id="next"></div>`;
+  card.querySelectorAll('.opt').forEach(b=>b.onclick=()=>{
+    if(!tf && !gap) speak(b.textContent);
+    if(b.textContent===right){
+      b.classList.add('ok'); card.querySelectorAll('.opt').forEach(x=>x.disabled=true);
+      if(gap){ $('.gap').textContent=right; $('.q').insertAdjacentHTML('afterbegin',sayBtn(full)); speak(full,$('.q .say')); }
+      correct(q.tip);
+    } else { b.classList.add('no'); b.disabled=true; wrong(); }
+  });
+}
+function renderOrder(q){
+  const words=q.s.split(' ').map((w,i)=>({w,i}));
+  let pool=shuffle(words.slice());
+  if(pool.map(x=>x.w).join(' ')===q.s) pool.reverse();
+  let picked=[], solved=false;
+  card.innerHTML=head()+`<p class="instr">${cur.room.instr}</p><p class="ru">🇷🇺 ${q.ru}</p><div class="answer" id="ans"></div><div class="pool" id="pool"></div><div class="fb" id="fb"></div><div id="next"><button class="btn" id="chk" disabled>Check</button></div>`;
+  const draw=()=>{
+    $('#ans').innerHTML=picked.length?picked.map((x,k)=>`<button class="chip in" data-k="${k}">${x.w}</button>`).join(''):'<span class="ph">Tap the words below…</span>';
+    $('#pool').innerHTML=pool.map((x,k)=>`<button class="chip" data-k="${k}">${x.w}</button>`).join('');
+    if($('#chk')) $('#chk').disabled=pool.length>0;
+  };
+  $('#ans').onclick=e=>{ const b=e.target.closest('.chip'); if(!b||solved) return; pool.push(picked.splice(+b.dataset.k,1)[0]); haptic('tap'); draw(); };
+  $('#pool').onclick=e=>{ const b=e.target.closest('.chip'); if(!b||solved) return; const x=pool.splice(+b.dataset.k,1)[0]; picked.push(x); speak(cleanWord(x.w)); haptic('tap'); draw(); };
+  $('#chk').onclick=()=>{
+    if(picked.map(x=>x.w).join(' ')===q.s){ solved=true; $('#ans').classList.add('ok'); $('#ans').insertAdjacentHTML('beforeend',sayBtn(q.s)); speak(q.s,$('#ans .say')); correct(q.tip); }
+    else wrong('❌ Not quite. Tap a word to move it back and try again.');
+  };
+  draw();
+}
+function renderType(q){
+  card.innerHTML=head()+`<p class="instr">${cur.room.instr}</p><div class="riddle">${sayBtn(q.q)}${q.q}</div><div class="hintline" id="hl"></div><input id="inp" class="inp" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="Type your answer…"><div class="fb" id="fb"></div><div id="next"><div class="row"><button class="btn ghost" id="hint">Hint</button><button class="btn" id="chk">Check</button></div></div>`;
+  const inp=$('#inp');
+  const check=()=>{
+    const v=norm(inp.value); if(!v) return;
+    if(q.a.some(a=>norm(a)===v)){ inp.disabled=true; inp.classList.add('ok'); inp.blur(); speak(q.a[0]); correct(`The answer is <b>${q.a[0]}</b>.`); }
+    else { inp.classList.add('err'); setTimeout(()=>inp.classList.remove('err'),600); wrong(); }
+  };
+  $('#chk').onclick=check;
+  inp.addEventListener('keydown',e=>{ if(e.key==='Enter') check(); });
+  $('#hint').onclick=()=>{ const a=q.a[0]; $('#hl').innerHTML=a.split('').map((c,i)=>i===0?c.toUpperCase():c===' '?'&nbsp;':/[a-z]/i.test(c)?'_':c).join(' '); haptic('tap'); };
+}
+function renderUnlock(){
+  const r=cur.room, last=cur.idx===5;
+  P().done=Math.max(P().done,cur.idx+1); save(); updateMap();
+  haptic('success');
+  card.innerHTML=head()+`<div class="unlock"><div class="bigkey">${last?'🚪':'🗝️'}</div><p>${r.unlock}</p></div><div id="next"><button class="btn" id="nb">${last?'Run outside! 🏃':'Go to the next door →'}</button></div>`;
+  $('#nb').onclick=()=>{ closeModal(); if(last) showWin(); };
+}
+
+/* ================= SCREENS ================= */
+function refreshIntro(){
+  $('#levels').innerHTML=Object.entries(LEVELS).map(([k,L])=>{
+    const p=state.levels[k];
+    const st=p.done>=6?`✓ Escaped · ${p.mistakes} mistake${p.mistakes===1?'':'s'}`:p.done>0?`Continue · door ${p.done+1} of 6`:'Not started';
+    return `<button class="lv ${p.done>=6?'won':p.done>0?'going':''}" data-lv="${k}"><span class="lv-l">${k}</span><span class="lv-t"><b>${L.sub} ${L.emoji}</b><small>${st}</small></span><span class="lv-go">${p.done>=6?'🏆':'→'}</span></button>`;
+  }).join('');
+  $('#resetBtn').hidden=!Object.values(state.levels).some(p=>p.done>0||p.mistakes>0);
+}
+$('#levels').onclick=e=>{
+  const b=e.target.closest('.lv'); if(!b) return;
+  haptic('tap'); state.level=b.dataset.lv; save(); updateMap(); loadVoice('common'); loadVoice(state.level);
+  $('#intro').classList.add('hidden');
+  if(P().done>=6) showWin();
+};
+$('#resetBtn').onclick=()=>{ state.levels={A2:blank(),B1:blank(),B2:blank()}; save(); updateMap(); refreshIntro(); };
+$('#lvlBtn').onclick=()=>{ haptic('tap'); closeModal(); $('#win').classList.add('hidden'); refreshIntro(); $('#intro').classList.remove('hidden'); };
+function showWin(){
+  const m=P().mistakes;
+  $('#winLvl').textContent=state.level;
+  $('#mist').textContent= m===0?'no mistakes':m===1?'just 1 mistake':m+' mistakes';
+  $('#badge').textContent= m===0?'🏆 Fearless English Master': m<=3?'🦇 Brave Ghost Hunter': m<=8?'🎃 Lucky Survivor':'💀 Scared but Alive';
+  $('#win').classList.remove('hidden');
+  const c=$('#confetti'); c.innerHTML='';
+  for(let i=0;i<28;i++){ const s=document.createElement('span'); s.textContent=pick(['🎃','🦇','👻','🍬','💀','🕸️','🍭']); s.style.left=rnd(0,100)+'%'; s.style.animationDuration=rnd(2.5,5)+'s'; s.style.animationDelay=rnd(0,1.5)+'s'; c.appendChild(s); }
+}
+$('#chanBtn').onclick=()=>openLink(CONFIG.CHANNEL_URL);
+$('#shareBtn').onclick=()=>openLink('https://t.me/share/url?url='+encodeURIComponent(CONFIG.APP_URL)+'&text='+encodeURIComponent(`I escaped the Haunted House in English (level ${state.level})! 🎃 Can you?`));
+$('#againBtn').onclick=()=>{ state.levels[state.level]=blank(); save(); updateMap(); $('#win').classList.add('hidden'); };
+$('#otherBtn').onclick=()=>{ $('#win').classList.add('hidden'); refreshIntro(); $('#intro').classList.remove('hidden'); };
+
+if(location.search.includes('cover')){ ['#intro','.hud','.bar'].forEach(q=>$(q).classList.add('hidden')); }
+updateMap(); refreshIntro(); loadVoice('common'); loadVoice(state.level);
+loadCloud(()=>{ updateMap(); refreshIntro(); });
+</script>
+</body>
+</html>
