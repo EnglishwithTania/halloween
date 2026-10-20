@@ -901,10 +901,10 @@ function openRoom(i){
   modal.classList.remove('hidden'); backBtn(true);
   const r=cur.room;
   sayList=[];
-  card.innerHTML=head()+`<div class="story">${sayBtn(r.story)}${r.story}</div><div class="task-name">🕯️ ${r.title}</div><p class="instr">${r.instr}</p><p class="ru">${r.ru}</p><div id="next"><button class="btn" id="go">I’m ready!</button></div>`;
+  card.innerHTML=cardHead()+`<div class="story">${sayBtn(r.story)}${r.story}</div><div class="task-name">🕯️ ${r.title}</div><p class="instr">${r.instr}</p><p class="ru">${r.ru}</p><div id="next"><button class="btn" id="go">I’m ready!</button></div>`;
   $('#go').onclick=()=>{ cur.qi=0; renderQ(); };
 }
-function head(){
+function cardHead(){
   const r=cur.room, n=cur.idx+1, total=r.questions.length;
   let dots='';
   if(cur.qi>=0 && cur.qi<total) dots='<div class="dots">'+r.questions.map((_,i)=>`<i class="${i<cur.qi?'d':i===cur.qi?'c':''}"></i>`).join('')+'</div>';
@@ -936,7 +936,7 @@ function renderChoice(q){
   const opts=tf?['True','False']:shuffle(q.o.slice());
   const right=tf?(q.a?'True':'False'):q.o[0];
   const gap=q.q.includes('___'), full=gap?q.q.replace('___',right):q.q;
-  card.innerHTML=head()
+  card.innerHTML=cardHead()
     +(tf?`<div class="passage"><b>📜 ${r.passageTitle}</b>${sayBtn(r.passage,'🎧 Listen to the story')}${r.passage}</div>`:'')
     +`<p class="instr">${r.instr}</p><div class="q">${gap?'':sayBtn(q.q)}${q.q.replace(/___/g,'<span class="gap">?</span>')}</div>`
     +`<div class="opts ${tf?'two':''}">${opts.map(o=>`<button class="opt">${o}</button>`).join('')}</div><div class="fb" id="fb"></div><div id="next"></div>`;
@@ -954,7 +954,7 @@ function renderOrder(q){
   let pool=shuffle(words.slice());
   if(pool.map(x=>x.w).join(' ')===q.s) pool.reverse();
   let picked=[], solved=false;
-  card.innerHTML=head()+`<p class="instr">${cur.room.instr}</p><p class="ru">🇷🇺 ${q.ru}</p><div class="answer" id="ans"></div><div class="pool" id="pool"></div><div class="fb" id="fb"></div><div id="next"><button class="btn" id="chk" disabled>Check</button></div>`;
+  card.innerHTML=cardHead()+`<p class="instr">${cur.room.instr}</p><p class="ru">🇷🇺 ${q.ru}</p><div class="answer" id="ans"></div><div class="pool" id="pool"></div><div class="fb" id="fb"></div><div id="next"><button class="btn" id="chk" disabled>Check</button></div>`;
   const draw=()=>{
     $('#ans').innerHTML=picked.length?picked.map((x,k)=>`<button class="chip in" data-k="${k}">${x.w}</button>`).join(''):'<span class="ph">Tap the words below…</span>';
     $('#pool').innerHTML=pool.map((x,k)=>`<button class="chip" data-k="${k}">${x.w}</button>`).join('');
@@ -969,7 +969,7 @@ function renderOrder(q){
   draw();
 }
 function renderType(q){
-  card.innerHTML=head()+`<p class="instr">${cur.room.instr}</p><div class="riddle">${sayBtn(q.q)}${q.q}</div><div class="hintline" id="hl"></div><input id="inp" class="inp" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="Type your answer…"><div class="fb" id="fb"></div><div id="next"><div class="row"><button class="btn ghost" id="hint">Hint</button><button class="btn" id="chk">Check</button></div></div>`;
+  card.innerHTML=cardHead()+`<p class="instr">${cur.room.instr}</p><div class="riddle">${sayBtn(q.q)}${q.q}</div><div class="hintline" id="hl"></div><input id="inp" class="inp" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="Type your answer…"><div class="fb" id="fb"></div><div id="next"><div class="row"><button class="btn ghost" id="hint">Hint</button><button class="btn" id="chk">Check</button></div></div>`;
   const inp=$('#inp');
   const check=()=>{
     const v=norm(inp.value); if(!v) return;
@@ -984,7 +984,7 @@ function renderUnlock(){
   const r=cur.room, last=cur.idx===5;
   P().done=Math.max(P().done,cur.idx+1); save(); updateMap();
   haptic('success');
-  card.innerHTML=head()+`<div class="unlock"><div class="bigkey">${last?'🚪':'🗝️'}</div><p>${r.unlock}</p></div><div id="next"><button class="btn" id="nb">${last?'Run outside! 🏃':'Go to the next door →'}</button></div>`;
+  card.innerHTML=cardHead()+`<div class="unlock"><div class="bigkey">${last?'🚪':'🗝️'}</div><p>${r.unlock}</p></div><div id="next"><button class="btn" id="nb">${last?'Run outside! 🏃':'Go to the next door →'}</button></div>`;
   $('#nb').onclick=()=>{ closeModal(); if(last) showWin(); };
 }
 
