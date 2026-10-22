@@ -61,6 +61,7 @@ html,body{margin:0;height:100%;background:#0b0620;color:#f4ecff;font-family:'Nun
 .btn.sm{padding:10px 14px;font-size:15px;white-space:nowrap}
 .btn.big{width:100%;font-size:18px;padding:15px}
 .btn.ghost{background:linear-gradient(180deg,#5b3d8f,#3b2466);color:#fff;box-shadow:0 4px 0 #1e1036}
+.chanlink{display:block;width:100%;margin-top:16px;padding:10px 12px;background:rgba(140,255,90,.08);border:1px dashed rgba(140,255,90,.5);border-radius:14px;color:#c9ffb0;font:700 14px 'Nunito';cursor:pointer}
 .link{background:none;border:0;color:#b9a8e0;font:600 14px 'Nunito';text-decoration:underline;margin-top:10px;cursor:pointer}
 
 /* ---------- screens ---------- */
@@ -450,6 +451,7 @@ html,body{margin:0;height:100%;background:#0b0620;color:#f4ecff;font-family:'Nun
   <p class="ru">Квест на английском: 6 заданий. Выберите свой уровень и попробуйте себя на других! Следующая дверь открывается, только когда пройдена предыдущая.</p>
   <div class="pick">Choose your level 👇</div>
   <div id="levels"></div>
+  <button class="chanlink" id="introChanBtn">🕯️ My English channel: tips & speaking club →</button>
   <button class="link" id="resetBtn" hidden>Reset all progress</button>
 </div></div>
 
@@ -1014,7 +1016,7 @@ function showWin(){
   const c=$('#confetti'); c.innerHTML='';
   for(let i=0;i<28;i++){ const s=document.createElement('span'); s.textContent=pick(['🎃','🦇','👻','🍬','💀','🕸️','🍭']); s.style.left=rnd(0,100)+'%'; s.style.animationDuration=rnd(2.5,5)+'s'; s.style.animationDelay=rnd(0,1.5)+'s'; c.appendChild(s); }
 }
-$('#chanBtn').onclick=()=>openLink(CONFIG.CHANNEL_URL);
+$('#chanBtn').onclick=$('#introChanBtn').onclick=()=>openLink(CONFIG.CHANNEL_URL);
 $('#shareBtn').onclick=()=>openLink('https://t.me/share/url?url='+encodeURIComponent(CONFIG.APP_URL)+'&text='+encodeURIComponent(`I escaped the Haunted House in English (level ${state.level})! 🎃 Can you?`));
 $('#againBtn').onclick=()=>{ state.levels[state.level]=blank(); save(); updateMap(); $('#win').classList.add('hidden'); };
 $('#otherBtn').onclick=()=>{ $('#win').classList.add('hidden'); refreshIntro(); $('#intro').classList.remove('hidden'); };
