@@ -663,7 +663,18 @@ if (tg) {
   try { tg.disableVerticalSwipes && tg.disableVerticalSwipes(); } catch(e){}
 }
 function haptic(t){ if(!inTG) return; try{ t==='tap' ? tg.HapticFeedback.selectionChanged() : tg.HapticFeedback.notificationOccurred(t); }catch(e){} }
-function openLink(url){ if(inTG){ try{ tg.openTelegramLink(url); return; }catch(e){} } window.open(url,'_blank'); }
+// Opens a t.me link inside Telegram. On iPhone the Mini App can stay on top of the opened chat,
+// so for the channel we close the app right after, and the channel becomes visible.
+function openLink(url,closeAfter){
+  if(inTG){
+    try{
+      tg.openTelegramLink(url);
+      if(closeAfter) setTimeout(()=>{ try{ tg.close(); }catch(e){} },350);
+      return;
+    }catch(e){ showErr('Link: '+e.message); }
+  }
+  const w=window.open(url,'_blank'); if(!w) location.href=url;
+}
 
 /* ================= STATE ================= */
 const STORE='hh-escape-v2';
@@ -1016,7 +1027,7 @@ function showWin(){
   const c=$('#confetti'); c.innerHTML='';
   for(let i=0;i<28;i++){ const s=document.createElement('span'); s.textContent=pick(['🎃','🦇','👻','🍬','💀','🕸️','🍭']); s.style.left=rnd(0,100)+'%'; s.style.animationDuration=rnd(2.5,5)+'s'; s.style.animationDelay=rnd(0,1.5)+'s'; c.appendChild(s); }
 }
-$('#chanBtn').onclick=$('#introChanBtn').onclick=()=>openLink(CONFIG.CHANNEL_URL);
+$('#chanBtn').onclick=$('#introChanBtn').onclick=()=>openLink(CONFIG.CHANNEL_URL,true);
 $('#shareBtn').onclick=()=>openLink('https://t.me/share/url?url='+encodeURIComponent(CONFIG.APP_URL)+'&text='+encodeURIComponent(`I escaped the Haunted House in English (level ${state.level})! 🎃 Can you?`));
 $('#againBtn').onclick=()=>{ state.levels[state.level]=blank(); save(); updateMap(); $('#win').classList.add('hidden'); };
 $('#otherBtn').onclick=()=>{ $('#win').classList.add('hidden'); refreshIntro(); $('#intro').classList.remove('hidden'); };
